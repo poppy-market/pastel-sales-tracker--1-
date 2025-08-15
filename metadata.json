@@ -1,0 +1,5 @@
+{
+  "name": "Pastel Sales Tracker",
+  "description": "A claymorphism-style sales tracking application for sellers to log sales and for admins to set bonus targets. Features dashboards, sales logging, and profile management with a pastel and pink color scheme.",
+  "requestFramePermissions": []
+}
