@@ -205,7 +205,7 @@ const AdminHeader: React.FC<{
                             >
                                 <a onClick={() => handleSelect('dashboard')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer rounded-t-lg"><TShirtIcon className="w-5 h-5"/> Dashboard</a>
                                 <a onClick={() => handleSelect('users')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"><ProfileIcon className="w-5 h-5"/> User Management</a>
-                                <a onClick={() => handleSelect('settings')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"><StarIcon className="w-5 h-5"/> Global Settings</a>
+                                <a onClick={() => handleSelect('settings')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"><img src="https://sofia.static.domains/Logos/poppy_icon_192x192_transparent.png" alt="Poppy Logo" className="w-5 h-5 object-contain"/> Global Settings</a>
                                 <div className="border-t border-gray-200"></div>
                                 <a onClick={onLogout} className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 cursor-pointer rounded-b-lg"><LogoutIcon className="w-5 h-5"/> Logout</a>
                             </div>
