@@ -186,8 +186,8 @@ const AdminHeader: React.FC<{
              <Card className="!py-3">
                 <div className="flex justify-between items-center">
                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-300 rounded-full flex items-center justify-center border-2 border-black/20">
-                    <img src="https://sofia.static.domains/Logos/poppy_icon_192x192_transparent.png" alt="Poppy Logo" className="w-16 h-16 object-contain"/>
+                        <div className="flex items-center justify-center">
+                            <img src="https://sofia.static.domains/Logos/poppy_icon_192x192_transparent.png" alt="Poppy Logo" className="w-10 h-10 object-contain" />
                         </div>
                         <div>
                             <h1 className="font-bold text-lg">{user?.name}</h1>
