@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Card, Input, Button, Modal } from './common/UI';
-import { UserIcon, LockIcon, StarIcon, EmailIcon } from './Icons';
+import { UserIcon, LockIcon, EmailIcon } from './Icons';
+
 import { supabase } from '../services/supabase';
 import { signUpUser } from '../services/storage';
 
@@ -179,9 +180,7 @@ const Login: React.FC = () => {
             <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="w-full max-w-sm">
                     <div className="flex justify-center mb-6">
-                        <div className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center border border-white/30 shadow-xl">
-                           <StarIcon className="w-10 h-10 text-pink-400" />
-                        </div>
+                        <img src="https://sofia.static.domains/Logos/poppy_icon_192x192_transparent.png" alt="Poppy Logo" className="w-24 h-24 object-contain" />
                     </div>
                     <Card>
                         <h1 className="text-2xl font-bold text-center mb-2">Welcome Back!</h1>

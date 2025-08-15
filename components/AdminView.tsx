@@ -4,7 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { BonusTargets, SessionLog, User, UserRole, WeeklyStatsData } from '../types';
 import * as storage from '../services/storage';
 import { Card, Button, Input, Modal } from './common/UI';
-import { LogoutIcon, SaveIcon, StarIcon, PesoSignIcon, CalendarIcon, EditIcon, MenuIcon, UserIcon as ProfileIcon, TShirtIcon, TagIcon, ClockIcon } from './Icons';
+import { LogoutIcon, SaveIcon, PesoSignIcon, CalendarIcon, EditIcon, MenuIcon, UserIcon as ProfileIcon, TShirtIcon, TagIcon, ClockIcon } from './Icons';
+
 import { DateTimePickerModal } from './common/DateTimePicker';
 import { SortableHeader } from './SellerView'; 
 import { formatFriendlyDateTime, getWeekRange } from '../utils/date';
@@ -186,7 +187,7 @@ const AdminHeader: React.FC<{
                 <div className="flex justify-between items-center">
                      <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-300 rounded-full flex items-center justify-center border-2 border-black/20">
-                            <StarIcon className="w-6 h-6 text-white"/>
+                    <img src="https://sofia.static.domains/Logos/poppy_icon_192x192_transparent.png" alt="Poppy Logo" className="w-16 h-16 object-contain"/>
                         </div>
                         <div>
                             <h1 className="font-bold text-lg">{user?.name}</h1>
