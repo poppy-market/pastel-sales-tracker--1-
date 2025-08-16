@@ -16,9 +16,9 @@ export const Header: React.FC = () => (
         <span className="w-6 h-6 text-gray-600 hover:text-pink-400 cursor-pointer">
           <FaChartBar size={24} title="Dashboard" />
         </span>
-        <span className="w-6 h-6 text-gray-600 hover:text-pink-400 cursor-pointer">
-          <FaUserCircle size={24} title="Profile" />
-        </span>
+          <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-pink-200 border-2 border-pink-300 overflow-hidden">
+            <img src="https://sofia.static.domains/Logos/poppy_icon_512x512_transparent.png" alt="Poppy Icon" className="w-9 h-9 object-contain" />
+          </span>
       </nav>
       <button className="ml-auto flex items-center gap-2 text-gray-600 hover:text-red-500">
         <span className="w-5 h-5">

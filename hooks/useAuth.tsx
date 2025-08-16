@@ -15,7 +15,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    console.log('[AuthProvider] Rendered. user:', user, 'loading:', loading);
 
     const getProfile = useCallback(async (authId: string): Promise<User | null> => {
         try {
@@ -25,13 +24,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 .eq('auth_id', authId)
                 .single();
             if (error) {
-                console.error('[getProfile] Error fetching profile for auth user:', error.message, error);
                 return null;
             }
-            console.log('[getProfile] Profile data:', data);
             return data;
         } catch (err) {
-            console.error('[getProfile] Exception:', err);
             return null;
         }
     }, []);
@@ -41,14 +37,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const handleSessionAndProfile = async (session) => {
             try {
                 if (!session || !session.user) {
-                    console.log('[AuthProvider] No session user.');
                     setUser(null);
                     if (!unsubscribed && window.location.pathname !== '/login') window.location.href = '/login';
                     return;
                 }
-                console.log('[AuthProvider] About to call getProfile with session.user.id:', session.user.id);
                 const profile = await getProfile(session.user.id);
-                console.log('[AuthProvider] Profile fetched:', profile);
                 if (!profile) {
                     setUser(null);
                     if (!unsubscribed && window.location.pathname !== '/login') window.location.href = '/login';
@@ -56,24 +49,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
                 setUser(profile);
             } catch (err) {
-                console.error('[AuthProvider] Session or profile error:', err);
                 setUser(null);
                 if (!unsubscribed && window.location.pathname !== '/login') window.location.href = '/login';
             } finally {
                 setLoading(false);
-                console.log('[AuthProvider] setLoading(false) called.');
             }
         };
 
         // Initial session/profile fetch
         supabase.auth.getSession().then(({ data: { session }, error }) => {
-            console.log('[AuthProvider] getSession result:', session, error);
             handleSessionAndProfile(session);
         });
 
         // Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            console.log('[AuthProvider] onAuthStateChange event:', _event, session);
             handleSessionAndProfile(session);
         });
 
@@ -140,5 +129,4 @@ export const useAuth = (): AuthContextType => {
 
 // Global unhandledrejection handler for debugging
 window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
 });

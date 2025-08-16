@@ -10,9 +10,11 @@ interface CalendarProps {
     viewDate: Date;
     selectedDate: Date;
     onDateSelect: (date: Date) => void;
+    minDate?: Date;
+    maxDate?: Date;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ viewDate, selectedDate, onDateSelect }) => {
+const Calendar: React.FC<CalendarProps> = ({ viewDate, selectedDate, onDateSelect, minDate, maxDate }) => {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
 
@@ -30,36 +32,40 @@ const Calendar: React.FC<CalendarProps> = ({ viewDate, selectedDate, onDateSelec
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(year, month, day);
             date.setHours(0, 0, 0, 0);
-            
             const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
             const isToday = date.getTime() === today.getTime();
-
+            const isBeforeMin = minDate && date < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+            const isAfterMax = maxDate && date > new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
             let buttonClasses = "w-10 h-10 flex items-center justify-center rounded-full cursor-pointer transition-colors duration-200 text-sm";
-            
             if (isSelected) {
                 buttonClasses += " bg-pink-400 text-white font-bold";
             } else {
-                 buttonClasses += " hover:bg-gray-200";
+                buttonClasses += " hover:bg-gray-200";
             }
-            
             if(isToday && !isSelected) {
-                buttonClasses += " border-2 border-pink-400"
+                buttonClasses += " border-2 border-pink-400";
             }
-            
+            if (isBeforeMin || isAfterMax) {
+                buttonClasses += " opacity-40 cursor-not-allowed";
+            }
             dayElements.push(
-               <div key={day} className="flex justify-center items-center">
-                   <button onClick={() => onDateSelect(date)} className={buttonClasses}>
-                       {day}
-                   </button>
+                <div key={day} className="flex justify-center items-center">
+                    <button
+                        onClick={() => !(isBeforeMin || isAfterMax) && onDateSelect(date)}
+                        className={buttonClasses}
+                        disabled={isBeforeMin || isAfterMax}
+                    >
+                        {day}
+                    </button>
                 </div>
             );
         }
         return dayElements;
-    }, [year, month, daysInMonth, firstDay, selectedDate, onDateSelect, today]);
+    }, [year, month, daysInMonth, firstDay, selectedDate, onDateSelect, today, minDate, maxDate]);
 
     return (
         <div className="grid grid-cols-7 gap-y-1 items-center text-center">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => <div key={day} className="font-bold text-gray-500 text-xs w-10">{day}</div>)}
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => <div key={day + idx} className="font-bold text-gray-500 text-xs w-10">{day}</div>)}
             {calendarDays}
         </div>
     );
@@ -71,9 +77,11 @@ interface DateTimePickerModalProps {
     onApply: (date: Date) => void;
     initialDate: Date;
     title: string;
+    minDate?: Date;
+    maxDate?: Date;
 }
 
-export const DateTimePickerModal: React.FC<DateTimePickerModalProps> = ({ isOpen, onClose, onApply, initialDate, title }) => {
+export const DateTimePickerModal: React.FC<DateTimePickerModalProps> = ({ isOpen, onClose, onApply, initialDate, title, minDate, maxDate }) => {
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [hour, setHour] = useState(12); // 1-12
@@ -153,6 +161,8 @@ export const DateTimePickerModal: React.FC<DateTimePickerModalProps> = ({ isOpen
                     viewDate={viewDate}
                     selectedDate={selectedDate}
                     onDateSelect={setSelectedDate}
+                    minDate={minDate}
+                    maxDate={maxDate}
                 />
                 
                 <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-200">

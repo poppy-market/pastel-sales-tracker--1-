@@ -13,7 +13,6 @@ const UserManagement: React.FC = () => {
     const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     const userList = await storage.getUsers();
-    console.log('Fetched users from Supabase:', userList);
     setUsers(userList);
     setIsLoading(false);
     }, []);

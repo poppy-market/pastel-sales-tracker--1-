@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { UserRole } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { Card, Input, Button, Modal } from './common/UI';
 import { UserIcon, LockIcon, EmailIcon } from './Icons';
@@ -162,7 +164,15 @@ const Login: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
-    const { login } = useAuth();
+    const { user, login } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user) {
+            if (user.role === UserRole.ADMIN) navigate('/admin', { replace: true });
+            else if (user.role === UserRole.SELLER) navigate('/seller', { replace: true });
+        }
+    }, [user, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

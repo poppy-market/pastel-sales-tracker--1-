@@ -42,7 +42,7 @@ const ResetPassword = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-pink-200 via-purple-200 to-blue-300">
-      <Card className="w-full max-w-md p-8">
+  <Card className="w-full max-w-md p-8">
         <div className="flex flex-col items-center mb-4">
           <LockIcon className="w-12 h-12 text-pink-400 mb-2" />
           <h2 className="text-2xl font-bold text-center">Reset Your Password</h2>

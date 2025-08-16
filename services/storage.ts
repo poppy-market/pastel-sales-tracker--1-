@@ -51,7 +51,6 @@ export const getSessionLogsEdge = async ({
         };
     } else {
         const err = await res.text();
-        console.error('Edge Function error:', err);
         return [];
     }
 };
@@ -74,17 +73,14 @@ export const getUsers = async (): Promise<User[]> => {
                 return await res.json();
             } else {
                 const err = await res.text();
-                console.error('Edge Function error:', err);
                 return [];
             }
         }
     } catch (e) {
-        console.error('Error calling Edge Function:', e);
     }
     // Fallback to normal RLS-limited fetch
     const { data, error } = await supabase.from('users').select('*');
     if (error) {
-        console.error("Error fetching users:", error);
         return [];
     }
     return data || [];
@@ -95,7 +91,6 @@ export const getUserById = async (id: number): Promise<User | null> => {
     if (error) {
         // Don't log "not found" errors as they are expected.
         if (!error.message.includes('0 rows')) {
-            console.error(`Error fetching user ${id}:`, error);
         }
         return null;
     }
@@ -109,7 +104,6 @@ export const updateUser = async (updatedUser: User): Promise<void> => {
         gcash: updatedUser.gcash,
     }).eq('id', updatedUser.id);
 
-    if (error) console.error("Error updating user:", error);
 };
 
 export const signUpUser = async (name: string, email: string, password: string): Promise<{ success: boolean, message: string }> => {
@@ -160,7 +154,6 @@ export const inviteUser = async (email: string): Promise<{ success: boolean, mes
 export const getSessionLogs = async (): Promise<SessionLog[]> => {
     const { data, error } = await supabase.from('session_logs').select('*');
     if (error) {
-        console.error("Error fetching session logs:", error);
         return [];
     }
     // Map snake_case from DB to camelCase in app
@@ -183,7 +176,6 @@ export const addSessionLog = async (log: Omit<SessionLog, 'id'>): Promise<void> 
        branded_items_sold: log.brandedItemsSold,
        free_size_items_sold: log.freeSizeItemsSold,
     });
-    if (error) console.error("Error adding session log:", error);
 };
 
 export const updateSessionLog = async (updatedLog: SessionLog): Promise<void> => {
@@ -193,7 +185,6 @@ export const updateSessionLog = async (updatedLog: SessionLog): Promise<void> =>
        branded_items_sold: updatedLog.brandedItemsSold,
        free_size_items_sold: updatedLog.freeSizeItemsSold,
     }).eq('id', updatedLog.id);
-    if (error) console.error("Error updating session log:", error);
 };
 
 // --- Bonus Target Functions ---
@@ -212,7 +203,6 @@ const defaultTargets: BonusTargets = {
 export const getBonusTargets = async (): Promise<BonusTargets> => {
     const { data, error } = await supabase.from('bonus_targets').select('*').eq('id', 1).single();
     if (error || !data) {
-        console.error("Could not fetch bonus targets, using defaults.", error);
         return defaultTargets;
     }
     // Map snake_case from DB to camelCase in app
@@ -243,7 +233,6 @@ export const setBonusTargets = async (targets: BonusTargets): Promise<void> => {
         updated_at: new Date().toISOString(),
     }).eq('id', 1);
 
-    if (error) console.error("Error setting bonus targets:", error);
 };
 
 // --- Stats Calculation Function ---
@@ -255,7 +244,6 @@ export const getWeeklyStats = async (sellerId: number | null, date: Date): Promi
     });
 
     if (error) {
-        console.error("Error fetching weekly stats:", error);
         return null;
     }
     

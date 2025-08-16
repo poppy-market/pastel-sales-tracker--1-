@@ -6,6 +6,7 @@ import { getSessionLogs, addSessionLog, getBonusTargets, getWeeklyStats, getSess
 import { formatFriendlyDateTime, getWeekRange } from '../utils/date';
 import { Card, Button, Modal, Input } from './common/UI';
 import { PlusIcon, LogoutIcon, UserIcon as ProfileIcon, EditIcon, SaveIcon, CalendarIcon, TShirtIcon, TagIcon } from './Icons';
+import { FaRegListAlt, FaMoneyBillWave, FaChartBar } from 'react-icons/fa';
 import SellerProfile from './SellerProfile';
 import { DateTimePickerModal } from './common/DateTimePicker';
 import { ProjectedPayoutCard, WeeklyStatCard, DailyStatCard } from './dashboard/DashboardComponents';
@@ -19,12 +20,12 @@ const SellerHeader: React.FC<{ onNavigate: (page: 'dashboard' | 'profile') => vo
              <Card className="!py-3">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-pink-300 rounded-full flex items-center justify-center border-2 border-black/20">
-                            <ProfileIcon className="w-6 h-6 text-white"/>
-                        </div>
+                                                <span className="inline-flex items-center justify-center w-20 h-20">
+                                                    <img src="https://sofia.static.domains/Logos/poppy_icon_512x512_transparent.png" alt="Poppy Icon" className="w-20 h-20 object-contain" />
+                                                </span>
                         <div>
-                            <h1 className="font-bold text-lg">{user?.name}</h1>
-                            <p className="text-sm text-gray-600">Seller Dashboard</p>
+                            <h1 className="font-bold text-xl">{user?.name}</h1>
+                            <p className="text-base text-gray-600 font-medium">Seller Dashboard</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -53,6 +54,7 @@ const LogSessionForm: React.FC<{onClose: () => void, onSave: () => void}> = ({on
         title: '',
         date: new Date()
     });
+    const [error, setError] = useState<string | null>(null);
 
     const durationString = useMemo(() => {
         const durationMs = endTime.getTime() - startTime.getTime();
@@ -93,17 +95,25 @@ const LogSessionForm: React.FC<{onClose: () => void, onSave: () => void}> = ({on
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
         if (!user) return;
-        
-        await addSessionLog({
-            sellerId: user.id,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            brandedItemsSold: Number(brandedItems),
-            freeSizeItemsSold: Number(freeSizeItems)
-        });
-        onSave();
-        onClose();
+        if (endTime < startTime) {
+            setError('End date/time cannot be before start date/time.');
+            return;
+        }
+        try {
+            await addSessionLog({
+                sellerId: user.id,
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                brandedItemsSold: Number(brandedItems),
+                freeSizeItemsSold: Number(freeSizeItems)
+            });
+            onSave();
+            onClose();
+        } catch (err: any) {
+            setError('Failed to save session. Please try again.');
+        }
     };
 
     const DateTimeButton: React.FC<{label: string, date: Date, onClick: () => void}> = ({label, date, onClick}) => (
@@ -126,17 +136,19 @@ const LogSessionForm: React.FC<{onClose: () => void, onSave: () => void}> = ({on
             <form onSubmit={handleSubmit} className="space-y-4">
                 <DateTimeButton label="Start Date & Time" date={startTime} onClick={() => openPicker('start')} />
                 <DateTimeButton label="End Date & Time" date={endTime} onClick={() => openPicker('end')} />
-                
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Duration</label>
                     <div className="w-full p-3 rounded-lg border-2 border-gray-300 bg-gray-100/80 text-gray-600 font-medium text-center">
                         {durationString}
                     </div>
                 </div>
-
+                {error && (
+                    <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded-lg text-center font-semibold shadow animate-fade-in">
+                        {error}
+                    </div>
+                )}
                 <Input icon={<TShirtIcon className="w-5 h-5 text-gray-400" />} label="Branded Items Sold" type="number" value={brandedItems} onChange={e => setBrandedItems(Number(e.target.value))} min="0" required/>
                 <Input icon={<TagIcon className="w-5 h-5 text-gray-400" />} label="Free Size Items Sold" type="number" value={freeSizeItems} onChange={e => setFreeSizeItems(Number(e.target.value))} min="0" required/>
-                
                 <Button type="submit" className="w-full">
                     <SaveIcon className="w-5 h-5" /> Save Session
                 </Button>
@@ -147,6 +159,8 @@ const LogSessionForm: React.FC<{onClose: () => void, onSave: () => void}> = ({on
                 onApply={handlePickerApply}
                 initialDate={pickerState.date}
                 title={pickerState.title}
+                minDate={pickerState.field === 'end' ? startTime : undefined}
+                maxDate={pickerState.field === 'start' ? endTime : undefined}
             />
         </>
     );
@@ -185,6 +199,15 @@ const SellerDashboard: React.FC<{onNavigate: (page: 'dashboard' | 'profile') => 
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: string } | null>({ key: 'startTime', direction: 'descending' });
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [logSuccess, setLogSuccess] = useState(false);
+
+    // Show success message for 2.5 seconds when logSuccess is true
+    useEffect(() => {
+        if (logSuccess) {
+            const timer = setTimeout(() => setLogSuccess(false), 2500);
+            return () => clearTimeout(timer);
+        }
+    }, [logSuccess]);
     
     const fetchDashboardData = useCallback(async () => {
         if (!user) return;
@@ -304,34 +327,48 @@ const SellerDashboard: React.FC<{onNavigate: (page: 'dashboard' | 'profile') => 
     }
 
     return (
-        <div className="p-4 pt-6 space-y-6 pb-24">
-            <WeekNavigator currentDate={currentDate} onDateChange={setCurrentDate} />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <ProjectedPayoutCard payout={stats.payout} />
-                <WeeklyStatCard stats={stats} targets={targets} weekDateRange={stats.weekDateRange} />
-            </div>
 
-            <div>
-                <h2 className="text-xl font-bold mt-6 mb-3">Daily Breakdown</h2>
-                <div className="relative">
-                    <div
-                        className="flex gap-4 overflow-x-auto no-scrollbar"
-                        style={{ scrollSnapType: 'x mandatory' }}
-                    >
-                        {stats.dailyStats && Array.isArray(stats.dailyStats)
-                            ? stats.dailyStats.map((dayData, index) => (
-                                <DailyStatCard key={dayData.dayName + '-' + (dayData.date ? new Date(dayData.date).getTime() : index)} dayData={dayData} targets={targets} />
-                            ))
-                            : null}
+                <div className="p-4 pt-6 space-y-6 pb-24">
+                    <WeekNavigator currentDate={currentDate} onDateChange={setCurrentDate} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <div className="mb-3 flex items-center gap-2">
+                                <FaMoneyBillWave size={24} color="#22c55e" />
+                                <span className="font-bold text-xl text-gray-800">Projected Payout</span>
+                            </div>
+                            <ProjectedPayoutCard payout={stats.payout} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <div className="mb-3 flex items-center gap-2">
+                                <FaChartBar size={24} color="#a78bfa" />
+                                <span className="font-bold text-xl text-gray-800">Weekly Summary</span>
+                            </div>
+                            <WeeklyStatCard stats={stats} targets={targets} weekDateRange={stats.weekDateRange} />
+                        </div>
                     </div>
-                </div>
-            </div>
+
+                    <div className="mt-6 mb-3 flex items-center gap-2">
+                        <span className="text-purple-500 w-6 h-6 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </span>
+                        <span className="font-bold text-xl text-gray-800">Daily Breakdown</span>
+                    </div>
+                    <div className="relative">
+                        <div className="flex gap-4 overflow-x-auto no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
+                            {stats.dailyStats && Array.isArray(stats.dailyStats)
+                                ? stats.dailyStats.map((dayData, index) => (
+                                    <DailyStatCard key={dayData.dayName + '-' + (dayData.date ? new Date(dayData.date).getTime() : index)} dayData={dayData} targets={targets} />
+                                ))
+                                : null}
+                        </div>
+                    </div>
 
             <Card>
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Recent Sales Logs</h2>
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><FaRegListAlt size={24} color="#a78bfa" /> Recent Sales Logs</h2>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="border-b-2 border-gray-200 bg-gray-50/80">
+                    <table className="w-full text-left text-base rounded-2xl overflow-hidden shadow-sm">
+                        <thead className="border-b-2 border-pink-100 bg-gradient-to-r from-pink-50/80 to-blue-50/80">
                             <tr>
                                 <SortableHeader title="Date" sortKey="startTime" sortConfig={sortConfig} requestSort={requestSort} className="text-left !justify-start pl-2" />
                                 <SortableHeader title="Branded" sortKey="brandedItemsSold" sortConfig={sortConfig} requestSort={requestSort} />
@@ -340,27 +377,29 @@ const SellerDashboard: React.FC<{onNavigate: (page: 'dashboard' | 'profile') => 
                             </tr>
                         </thead>
                         <tbody>
-                                {logs.length > 0 ? paginatedLogs.map(log => {
-                                    // Use start_time for date, fallback to created_at
-                                    const dateStr = log.startTime || log.created_at;
-                                    const date = dateStr ? new Date(dateStr) : null;
-                                    const formattedDate = date && !isNaN(date.getTime()) ? date.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : '—';
-                                    const branded = Number(log.brandedItemsSold) || 0;
-                                    const freeSize = Number(log.freeSizeItemsSold) || 0;
-                                    const total = branded + freeSize;
-                                    return (
-                                        <tr key={log.id} className="border-b border-gray-100 last:border-b-0 hover:bg-pink-50/50">
-                                            <td className="p-2 text-gray-700 text-sm">{formattedDate}</td>
-                                            <td className="p-2 text-gray-800 text-center text-sm">{branded}</td>
-                                            <td className="p-2 text-gray-800 text-center text-sm">{freeSize}</td>
-                                            <td className="p-2 font-bold text-gray-900 text-center text-sm">{total}</td>
-                                        </tr>
-                                    );
-                                }) : (
-                                    <tr>
-                                        <td colSpan={4} className="text-center p-8 text-gray-500">No sales logged yet.</td>
+                            {logs.length > 0 ? paginatedLogs.map((log, idx) => {
+                                // Use start_time for date, fallback to created_at
+                                const dateStr = log.startTime || log.created_at;
+                                const date = dateStr ? new Date(dateStr) : null;
+                                const formattedDate = date && !isNaN(date.getTime()) ? date.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : '—';
+                                const branded = Number(log.brandedItemsSold) || 0;
+                                const freeSize = Number(log.freeSizeItemsSold) || 0;
+                                const total = branded + freeSize;
+                                // Alternate pastel row backgrounds
+                                const rowBg = idx % 2 === 0 ? 'bg-pink-50/60' : 'bg-blue-50/40';
+                                return (
+                                    <tr key={log.id} className={`${rowBg} border-b border-pink-100 last:border-b-0 hover:bg-pink-100/60 transition-all`}>
+                                        <td className="p-2 text-gray-700 text-base rounded-l-xl">{formattedDate}</td>
+                                        <td className="p-2 text-gray-800 text-center text-base">{branded}</td>
+                                        <td className="p-2 text-gray-800 text-center text-base">{freeSize}</td>
+                                        <td className="p-2 font-bold text-gray-900 text-center text-base rounded-r-xl">{total}</td>
                                     </tr>
-                                )}
+                                );
+                            }) : (
+                                <tr>
+                                    <td colSpan={4} className="text-center p-8 text-gray-500">No sales logged yet.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -389,6 +428,11 @@ const SellerDashboard: React.FC<{onNavigate: (page: 'dashboard' | 'profile') => 
                 )}
             </Card>
 
+            {logSuccess && (
+                <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-2 rounded-lg text-center font-semibold shadow mb-2 animate-fade-in fixed bottom-24 right-6 z-50">
+                    Log saved successfully!
+                </div>
+            )}
             <Button 
                 variant="primary" 
                 onClick={() => setIsModalOpen(true)}
@@ -397,9 +441,8 @@ const SellerDashboard: React.FC<{onNavigate: (page: 'dashboard' | 'profile') => 
             >
                 <PlusIcon className="w-8 h-8"/>
             </Button>
-            
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log New Sales Session">
-                <LogSessionForm onClose={() => setIsModalOpen(false)} onSave={fetchDashboardData} />
+                <LogSessionForm onClose={() => setIsModalOpen(false)} onSave={() => { fetchDashboardData(); setLogSuccess(true); }} />
             </Modal>
         </div>
     );

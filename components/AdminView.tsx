@@ -5,6 +5,7 @@ import { BonusTargets, SessionLog, User, UserRole, WeeklyStatsData } from '../ty
 import * as storage from '../services/storage';
 import { Card, Button, Input, Modal } from './common/UI';
 import { LogoutIcon, SaveIcon, PesoSignIcon, CalendarIcon, EditIcon, MenuIcon, UserIcon as ProfileIcon, TShirtIcon, TagIcon, ClockIcon } from './Icons';
+import { FaRegListAlt, FaMoneyBillWave, FaChartBar } from 'react-icons/fa';
 
 import { DateTimePickerModal } from './common/DateTimePicker';
 import { SortableHeader } from './SellerView'; 
@@ -12,6 +13,7 @@ import { formatFriendlyDateTime, getWeekRange } from '../utils/date';
 import UserManagement from './UserManagement';
 import { ProjectedPayoutCard, WeeklyStatCard, DailyStatCard } from './dashboard/DashboardComponents';
 import { WeekNavigator } from './dashboard/DashboardControls';
+import SellerProfile from './SellerProfile';
 
 
 const SettingsPage: React.FC = () => {
@@ -86,7 +88,7 @@ const SettingsPage: React.FC = () => {
     )
 }
 
-const EditLogModal: React.FC<{log: SessionLog | null; onClose: () => void; onSave: () => void;}> = ({ log, onClose, onSave }) => {
+const EditLogModal: React.FC<{log: SessionLog | null; onClose: () => void; onSave: () => void; onSuccess?: () => void;}> = ({ log, onClose, onSave, onSuccess }) => {
     const [formData, setFormData] = useState<Partial<SessionLog>>({});
     const [pickerState, setPickerState] = useState<{isOpen: boolean; field: 'start' | 'end'; title: string; date: Date}>({
         isOpen: false, field: 'start', title: '', date: new Date()
@@ -110,6 +112,7 @@ const EditLogModal: React.FC<{log: SessionLog | null; onClose: () => void; onSav
         e.preventDefault();
         await storage.updateSessionLog(formData as SessionLog);
         onSave();
+        if (onSuccess) onSuccess();
         onClose();
     };
     
@@ -204,6 +207,7 @@ const AdminHeader: React.FC<{
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 <a onClick={() => handleSelect('dashboard')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer rounded-t-lg"><TShirtIcon className="w-5 h-5"/> Dashboard</a>
+                                <a onClick={() => handleSelect('profile')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"><ProfileIcon className="w-5 h-5"/> Edit Profile</a>
                                 <a onClick={() => handleSelect('users')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"><ProfileIcon className="w-5 h-5"/> User Management</a>
                                 <a onClick={() => handleSelect('settings')} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"><img src="https://sofia.static.domains/Logos/poppy_icon_192x192_transparent.png" alt="Poppy Logo" className="w-5 h-5 object-contain"/> Global Settings</a>
                                 <div className="border-t border-gray-200"></div>
@@ -222,6 +226,8 @@ const AdminDashboard: React.FC<{
     selectedSellerId: string;
     onSellerChange: (id: string) => void;
 }> = ({ allSellers, selectedSellerId, onSellerChange}) => {
+
+    // All hooks must be called before any return
     const [allLogs, setAllLogs] = useState<SessionLog[]>([]);
     const [targets, setTargets] = useState<BonusTargets | null>(null);
     const [stats, setStats] = useState<WeeklyStatsData | null>(null);
@@ -229,13 +235,12 @@ const AdminDashboard: React.FC<{
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: string } | null>({ key: 'startTime', direction: 'descending' });
     const [editingLog, setEditingLog] = useState<SessionLog | null>(null);
+    const [logSuccess, setLogSuccess] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
-        // Calculate week range and ensure week always starts on Wednesday (UTC)
         let { start: weekStart } = getWeekRange(currentDate);
-        // If weekStart is not Wednesday, move to next Wednesday
         if (weekStart.getUTCDay() !== 3) {
             const daysToAdd = (3 - weekStart.getUTCDay() + 7) % 7;
             weekStart.setUTCDate(weekStart.getUTCDate() + daysToAdd);
@@ -262,7 +267,7 @@ const AdminDashboard: React.FC<{
             const stats = result.stats || null;
             const mappedLogs = logs.map(log => ({
                 ...log,
-                sellerId: log.seller_id, // Fix: map seller_id to sellerId for filtering
+                sellerId: log.seller_id,
                 startTime: log.start_time_manila || log.start_time,
                 brandedItemsSold: log.branded_items_sold,
                 freeSizeItemsSold: log.free_size_items_sold,
@@ -274,7 +279,6 @@ const AdminDashboard: React.FC<{
         } catch (err) {
             setAllLogs([]);
             setStats(null);
-            // Optionally, set an error message state to display to the user
         } finally {
             setIsLoading(false);
         }
@@ -283,7 +287,7 @@ const AdminDashboard: React.FC<{
     useEffect(() => {
         fetchData();
     }, [fetchData]);
-    
+
     const sellerIds = useMemo(() => new Set(allSellers.map(s => s.id)), [allSellers]);
 
     const logsToDisplay = useMemo(() => {
@@ -292,7 +296,7 @@ const AdminDashboard: React.FC<{
         }
         return allLogs.filter(log => log.sellerId === Number(selectedSellerId));
     }, [allLogs, selectedSellerId, sellerIds]);
-    
+
     const requestSort = (key: any) => {
         let direction = 'ascending';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -324,10 +328,19 @@ const AdminDashboard: React.FC<{
     const totalPages = Math.ceil(sortedLogs.length / rowsPerPage);
     const paginatedLogs = sortedLogs.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
+    // Show success message for 2.5 seconds when logSuccess is true
+    useEffect(() => {
+        if (logSuccess) {
+            const timer = setTimeout(() => setLogSuccess(false), 2500);
+            return () => clearTimeout(timer);
+        }
+    }, [logSuccess]);
+
+    // All hooks are now above this point
+
     if (isLoading) {
         return <div className="p-4 text-center">Loading dashboard...</div>;
     }
-    
     if (!stats || !targets) {
         return <div className="p-4 text-center">Could not load dashboard data.</div>;
     }
@@ -335,6 +348,11 @@ const AdminDashboard: React.FC<{
     return (
         <div className="space-y-6">
             <WeekNavigator currentDate={currentDate} onDateChange={setCurrentDate} />
+            {logSuccess && (
+                <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-2 rounded-lg text-center font-semibold shadow mb-2 animate-fade-in">
+                    Log saved successfully!
+                </div>
+            )}
             <Card>
                 <div className="flex items-center gap-2">
                     <label htmlFor="seller-filter" className="font-semibold text-gray-700">Filter by Seller:</label>
@@ -345,21 +363,41 @@ const AdminDashboard: React.FC<{
                 </div>
             </Card>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <ProjectedPayoutCard payout={stats.payout} />
-                <WeeklyStatCard stats={stats} targets={targets} weekDateRange={`${stats.weekStart} - ${stats.weekEnd}`} />
-            </div>
-            <div>
-                <h2 className="text-xl font-bold mt-6 mb-3">Daily Breakdown</h2>
-                <div className="relative">
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar" style={{scrollSnapType: 'x mandatory'}}>
-                        {stats.dailyStats && Array.isArray(stats.dailyStats)
-                            ? stats.dailyStats.map((dayData, index) => <DailyStatCard key={index} dayData={dayData} targets={targets} />)
-                            : null}
+                <div>
+                    <div className="mb-3 flex items-center gap-2">
+                        <FaMoneyBillWave size={24} color="#22c55e" />
+                        <span className="font-bold text-xl text-gray-800">Projected Payout</span>
                     </div>
+                    <ProjectedPayoutCard payout={stats.payout} />
+                </div>
+                <div className="md:col-span-2">
+                    <div className="mb-3 flex items-center gap-2">
+                        <FaChartBar size={24} color="#a78bfa" />
+                        <span className="font-bold text-xl text-gray-800">Weekly Summary</span>
+                    </div>
+                    <WeeklyStatCard stats={stats} targets={targets} weekDateRange={`${stats.weekStart} - ${stats.weekEnd}`} />
                 </div>
             </div>
-             <Card>
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Recent Sales Logs</h2>
+            <div className="mt-6 mb-3 flex items-center gap-2">
+                <span className="text-purple-500 w-6 h-6 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </span>
+                <span className="font-bold text-xl text-gray-800">Daily Breakdown</span>
+            </div>
+            <div className="relative">
+                <div className="flex gap-4 overflow-x-auto no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
+                    {stats.dailyStats && Array.isArray(stats.dailyStats)
+                        ? stats.dailyStats.map((dayData, index) => (
+                            <DailyStatCard key={index} dayData={dayData} targets={targets} />
+                        ))
+                        : null}
+                </div>
+            </div>
+            <div className="mt-8 mb-4 flex items-center gap-2">
+                <FaRegListAlt size={24} color="#a78bfa" />
+                <span className="font-bold text-xl text-gray-800">Recent Sales Logs</span>
+            </div>
+            <Card>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="border-b-2 border-gray-200 bg-gray-50/80">
@@ -398,7 +436,7 @@ const AdminDashboard: React.FC<{
                     </div>
                 )}
             </Card>
-            <EditLogModal log={editingLog} onClose={() => setEditingLog(null)} onSave={fetchData} />
+            <EditLogModal log={editingLog} onClose={() => setEditingLog(null)} onSave={fetchData} onSuccess={() => setLogSuccess(true)} />
         </div>
     );
 };
@@ -406,7 +444,7 @@ const AdminDashboard: React.FC<{
 
 const AdminView: React.FC = () => {
     const { user, logout } = useAuth();
-    const [activePage, setActivePage] = useState<'dashboard' | 'users' | 'settings'>('dashboard');
+    const [activePage, setActivePage] = useState<'dashboard' | 'users' | 'settings' | 'profile'>('dashboard');
     const [allSellers, setAllSellers] = useState<User[]>([]);
     const [selectedSellerId, setSelectedSellerId] = useState<string>('all');
     
@@ -426,6 +464,8 @@ const AdminView: React.FC = () => {
                 return <UserManagement />;
             case 'settings':
                 return <SettingsPage />;
+            case 'profile':
+                return <SellerProfile onNavigateBack={() => setActivePage('dashboard')} />;
             default:
                 return <AdminDashboard allSellers={allSellers} selectedSellerId={selectedSellerId} onSellerChange={setSelectedSellerId} />;
         }

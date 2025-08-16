@@ -19,5 +19,4 @@ root.render(
 );
 
 window.addEventListener('unhandledrejection', event => {
-  console.error('[Global] Unhandled promise rejection:', event.reason);
 });
